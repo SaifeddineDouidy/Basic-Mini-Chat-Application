@@ -40,6 +40,7 @@ public class Client {
             // Thread pour envoyer des messages
             Thread sendmsg = new Thread(() -> {
                 try {
+
                     BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
                     PrintWriter sortie = new PrintWriter(soc.getOutputStream(), true);
 

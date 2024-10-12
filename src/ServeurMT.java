@@ -15,7 +15,7 @@ public class ServeurMT extends Thread {
     @Override
     public void run() {
         try {
-            // Création d'un ServerSocket pour écouter les connexions sur le port 1002
+            // Création d'un ServerSocket pour écouter les connexions sur le port 1001
             ServerSocket serveur = new ServerSocket(1001);
             System.out.println("Serveur en attente de connexions...");
 

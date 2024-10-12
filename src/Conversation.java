@@ -24,17 +24,30 @@ public class Conversation extends Thread {
     @Override
     public void run() {
         try {
+            InputStream in = socket.getInputStream();
+            OutputStream out = socket.getOutputStream();
             // Création d'un BufferedReader pour lire les messages du client
             BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+            // Envoi de l'invite pour saisir un message au client au démarrage de la session
+            PrintWriter clientWriter = new PrintWriter(socket.getOutputStream(), true);
+            clientWriter.println(ANSI_YELLOW + "Veuillez saisir un message (format: numéroClient/message) : " + ANSI_RESET);
 
             while (true) {
                 // Lecture d'un message envoyé par le client
                 String data = br.readLine();
                 if (data == null) break; // Si le message est null, sortir de la boucle
-                if(data.equals("EXIT")) socket.close();
+                if (data.equals("EXIT")) {
+                    // Fermez les flux avant de fermer la socket
+                    in.close();
+                    out.close();
+                    socket.close();
+                    System.out.println("Client " + nb_client + " s'est déconnecté.");
+                    break; // Sortir de la boucle après avoir fermé la socket
+                }
 
-                // Affichage du message reçu
-                System.out.println(ANSI_GREEN + "Le message envoyé par client : " + nb_client + " est " + data + ANSI_RESET + "\n");
+                // Affichage du message envoyé par le client
+                System.out.println(ANSI_GREEN + "Le message envoyé par client " + nb_client + " est : " + data + ANSI_RESET + "\n");
 
                 // Séparation du message en fonction du caractère '/'
                 String[] parts = data.split("/");
@@ -60,17 +73,26 @@ public class Conversation extends Thread {
                     // Vérification si le numéro de destination correspond à un client
                     if (clients.indexOf(clientSocket) + 1 == dest) {
                         pw = new PrintWriter(clientSocket.getOutputStream(), true);
-                        pw.println(ANSI_BLUE + "Message de client " + nb_client + ": " + message + ANSI_RESET + "\n");
+                        pw.println(ANSI_BLUE + "Message reçu de client " + nb_client + ": " + message + ANSI_RESET + "\n");
+
+                        // L'autre client peut maintenant répondre
+                        pw.println(ANSI_YELLOW + "Veuillez répondre ou saisir un message : " + ANSI_RESET);
+
                         messageSent = true; // Indiquer que le message a été envoyé
+                        clientWriter.println(ANSI_YELLOW + "Message envoyé. Veuillez saisir un autre message : " + ANSI_RESET);
+
                         break;
                     }
                 }
 
                 // Si le message n'a pas été envoyé, le client n'existe pas
                 if (!messageSent) {
-                    PrintWriter clientWriter = new PrintWriter(socket.getOutputStream(), true);
+                    clientWriter = new PrintWriter(socket.getOutputStream(), true);
                     clientWriter.println(ANSI_RED + "Erreur : Le client avec ID " + dest + " n'existe pas." + ANSI_RESET + "\n");
                 }
+
+                // Après chaque traitement, réafficher l'invite pour le prochain message
+                clientWriter.println(ANSI_YELLOW + "Veuillez saisir un message (format: numéroClient/message) : " + ANSI_RESET);
             }
         } catch (IOException e) {
             e.printStackTrace(); // Gestion des erreurs d'entrée/sortie
@@ -99,7 +121,7 @@ public class Conversation extends Thread {
     public void sendConnectedClients() throws IOException {
         StringBuilder connectedClientsMessage = new StringBuilder();
         connectedClientsMessage.append(ANSI_YELLOW + "===== Liste des clients connectés =====\n");
-        connectedClientsMessage.append(ANSI_YELLOW + "Le message 0/message est message BROADCAST\n");
+        connectedClientsMessage.append(ANSI_YELLOW + "Le message 0/message est un message BROADCAST\n");
         connectedClientsMessage.append(ANSI_YELLOW + "EXIT pour couper la connexion\n");
 
         for (int i = 0; i < clients.size(); i++) {
